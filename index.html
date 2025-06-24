@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1042/1042782.png" type="icon/imge">
+    <!-- تم الإصلاح: تغيير type إلى النوع الصحيح لملفات PNG -->
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1042/1042782.png" type="image/png">
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -149,6 +150,12 @@
             overflow-y: auto;
             animation: fadeIn 0.3s;
         }
+        
+        /* إضافة: نافذة أصغر لإضافة الصور داخل المقال */
+        .modal-content.small-modal {
+            max-width: 450px;
+        }
+
 
         @keyframes fadeIn {
             from { opacity: 0; transform: scale(0.95); }
@@ -196,7 +203,7 @@
             font-weight: bold;
         }
 
-        button[type="submit"] {
+        button[type="submit"], .modal-button {
             background-color: var(--primary-color);
             color: white;
             padding: 14px 20px;
@@ -205,6 +212,7 @@
             cursor: pointer;
             font-size: 16px;
             font-weight: bold;
+            text-align: center;
         }
         
         button#submit-edit-btn {
@@ -215,6 +223,22 @@
             background-color: #6c757d;
             cursor: not-allowed;
         }
+        
+        /* إضافة: زر حذف المقال */
+        #delete-article-btn {
+            background-color: var(--danger-color);
+            color: white;
+            padding: 10px 25px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+        #delete-article-btn:hover {
+            opacity: 0.9;
+        }
+
 
         /* --- Single Article View --- */
         #article-view-content {
@@ -250,9 +274,20 @@
             font-size: 1.1rem;
             line-height: 1.8;
             white-space: pre-wrap;
+            word-wrap: break-word; /* لضمان عدم خروج النص عن الحاوية */
+        }
+        
+        /* إضافة: لتنسيق الصور داخل المقال */
+        #article-body img {
+            max-width: 100%;
+            height: auto;
+            border-radius: var(--border-radius);
+            display: block;
+            margin: 15px auto;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
 
-        #edit-article-container {
+        #edit-article-container, #delete-article-container {
             margin-top: 25px;
             padding-top: 25px;
             border-top: 1px dashed #ccc;
@@ -396,9 +431,11 @@
                 <h2>إنشاء مقالة جديدة</h2>
                 <input type="text" id="post-title" placeholder="عنوان المقالة" required>
                 <input type="text" id="post-author" placeholder="اسم الناشر" required value="فريق التحرير">
-                <textarea id="post-content" placeholder="موضوع المقالة" required></textarea>
+                <textarea id="post-content" placeholder="موضوع المقالة (لإضافة صورة داخل النص اكتب #اضافه_صوره)" required></textarea>
+                <label>صورة غلاف المقال (اختر واحداً):</label>
                 <input type="file" id="post-image-upload" accept="image/*">
                 <input type="url" id="post-image-url" placeholder="أو ضع رابط صورة خارجي">
+                <label>فيديو للمقال (اختياري):</label>
                 <input type="file" id="post-video-upload" accept="video/*">
                 <input type="url" id="post-video-url" placeholder="أو ضع رابط فيديو خارجي (يوتيوب)">
                 <button type="submit" id="submit-post-btn">نشر المقالة</button>
@@ -416,7 +453,7 @@
                 <input type="hidden" id="edit-article-id"> <!-- Hidden field to store ID -->
                 <input type="text" id="edit-post-title" placeholder="عنوان المقالة" required>
                 <input type="text" id="edit-post-author" placeholder="اسم الناشر" required>
-                <textarea id="edit-post-content" placeholder="موضوع المقالة" required></textarea>
+                <textarea id="edit-post-content" placeholder="موضوع المقالة (لإضافة صورة داخل النص اكتب #اضافه_صوره)" required></textarea>
                 <p>لتغيير الصورة أو الفيديو، أدخل رابطًا جديدًا. (لا يمكن تعديل الملفات المرفوعة حاليًا)</p>
                 <input type="url" id="edit-post-image-url" placeholder="رابط صورة خارجي">
                 <input type="url" id="edit-post-video-url" placeholder="رابط فيديو خارجي (يوتيوب)">
@@ -426,6 +463,23 @@
         </div>
     </div>
     
+    <!-- إضافة: نافذة إضافة صورة داخلية -->
+    <div id="inline-image-modal" class="modal">
+        <div class="modal-content small-modal">
+            <span class="close-btn" data-modal-id="inline-image-modal">×</span>
+            <h2>إضافة صورة داخل المقال</h2>
+            <div id="inline-image-form">
+                <p>اختر طريقة إضافة الصورة:</p>
+                <input type="file" id="inline-image-upload" accept="image/*">
+                <p style="text-align: center; font-weight: bold; margin: 10px 0;">أو</p>
+                <input type="url" id="inline-image-url" placeholder="ضع رابط صورة خارجي">
+                <button type="button" id="add-inline-image-btn" class="modal-button" style="margin-top: 15px;">إضافة الصورة</button>
+                <div id="inline-upload-status"></div>
+            </div>
+        </div>
+    </div>
+
+
     <!-- Single Article View Modal -->
     <div id="article-view-modal" class="modal">
          <div class="modal-content">
@@ -466,6 +520,11 @@
         const adminPostForm = document.getElementById('admin-post-form');
         const editPostForm = document.getElementById('edit-post-form');
         
+        // إضافة: عناصر نافذة الصور الداخلية
+        const postContentTextarea = document.getElementById('post-content');
+        const editContentTextarea = document.getElementById('edit-post-content');
+        let activeTextarea = null; // لتحديد أي مربع نص سيتم التعديل فيه
+
         const ADMIN_EMAIL = "naseahmed366@gmail.com";
         let isAdmin = false;
 
@@ -495,13 +554,20 @@
             const email = document.getElementById('admin-email').value;
             if (email.toLowerCase() === ADMIN_EMAIL) {
                 isAdmin = true;
+                sessionStorage.setItem('isAdmin', 'true'); // تخزين حالة الأدمن
                 closeModal('admin-login-modal');
                 showModal('admin-panel-modal');
                 adminLoginForm.reset();
+                loadArticles(); // إعادة تحميل المقالات لإظهار أزرار الأدمن
             } else {
                 alert('البريد الإلكتروني غير صحيح!');
             }
         });
+        
+        // التحقق من حالة الأدمن عند تحميل الصفحة
+        if (sessionStorage.getItem('isAdmin') === 'true') {
+            isAdmin = true;
+        }
 
         adminPostForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -591,7 +657,8 @@
             showModal('article-view-modal');
 
             try {
-                const docSnap = await getDoc(doc(db, "articles", articleId));
+                const docRef = doc(db, "articles", articleId);
+                const docSnap = await getDoc(docRef);
                 if (!docSnap.exists()) {
                     articleViewContent.innerHTML = '<p>عذرًا، هذه المقالة غير موجودة.</p>';
                     return;
@@ -611,8 +678,12 @@
                 }
 
                 const updateMeta = article.updatedAt ? `<br><span style="color: var(--success-color);">آخر تحديث: ${formatFirebaseDate(article.updatedAt, fullDateOptions)}</span>` : '';
+                
+                // إضافة: منطق إظهار أزرار الأدمن
                 const editButtonContainer = isAdmin ? `<div id="edit-article-container"><button class="edit-article-btn" data-article-id="${articleId}">تعديل المقالة</button></div>` : '';
+                const deleteButtonContainer = isAdmin ? `<div id="delete-article-container"><button id="delete-article-btn" data-article-id="${articleId}">حذف المقالة</button></div>` : '';
 
+                // تعديل: فصل المحتوى عن الهيكل الرئيسي للسماح بعرض HTML
                 articleViewContent.innerHTML = `
                     <h2 id="article-title">${article.title}</h2>
                     <div id="article-meta">
@@ -620,8 +691,9 @@
                         ${updateMeta}
                     </div>
                     <div id="article-media-container">${mediaHTML}</div>
-                    <p id="article-body">${article.content}</p>
+                    <div id="article-body"></div> <!-- حاوية فارغة للمحتوى -->
                     ${editButtonContainer}
+                    ${deleteButtonContainer} <!-- إضافة حاوية زر الحذف -->
                     <div id="comments-section">
                         <h3>التعليقات</h3>
                         <form id="comment-form" data-article-id="${articleId}">
@@ -634,10 +706,13 @@
                     </div>
                 `;
 
+                // تعديل: استخدام innerHTML لعرض الصور المضمنة
+                document.getElementById('article-body').innerHTML = article.content.replace(/\n/g, '<br>');
+
+
                 loadComments(articleId);
 
-                // *** CORRECTED: Use event delegation for dynamic content ***
-                articleViewContent.addEventListener('click', (e) => {
+                articleViewContent.addEventListener('click', async (e) => {
                     if (e.target.matches('.edit-article-btn')) {
                         openEditModal(articleId, article);
                     }
@@ -645,6 +720,20 @@
                         const commentId = e.target.dataset.commentId;
                         if (confirm('هل أنت متأكد من حذف هذا التعليق؟')) {
                             handleDeleteComment(articleId, commentId);
+                        }
+                    }
+                    // إضافة: التعامل مع زر حذف المقال
+                    if (e.target.matches('#delete-article-btn')) {
+                        if(confirm('هل أنت متأكد من حذف هذه المقالة نهائياً؟ هذا الإجراء لا يمكن التراجع عنه.')) {
+                            try {
+                                await deleteDoc(docRef);
+                                alert('تم حذف المقالة بنجاح.');
+                                closeModal('article-view-modal');
+                                loadArticles();
+                            } catch(error) {
+                                console.error("Error deleting article: ", error);
+                                alert('حدث خطأ أثناء حذف المقالة.');
+                            }
                         }
                     }
                 });
@@ -656,6 +745,65 @@
                 articleViewContent.innerHTML = '<p>حدث خطأ في تحميل المقالة.</p>';
             }
         }
+        
+        // إضافة: دالة فتح نافذة تعديل الصور الداخلية
+        function handleInlineImageRequest(event) {
+            const textarea = event.target;
+            if (textarea.value.includes('#اضافه_صوره')) {
+                activeTextarea = textarea; // حفظ مربع النص النشط
+                showModal('inline-image-modal');
+                // مسح الحقول عند فتح النافذة
+                document.getElementById('inline-image-upload').value = '';
+                document.getElementById('inline-image-url').value = '';
+                document.getElementById('inline-upload-status').textContent = '';
+            }
+        }
+        
+        // ربط الحدث بمربعات النص
+        postContentTextarea.addEventListener('input', handleInlineImageRequest);
+        editContentTextarea.addEventListener('input', handleInlineImageRequest);
+
+
+        // إضافة: منطق نافذة الصور الداخلية
+        document.getElementById('add-inline-image-btn').addEventListener('click', async () => {
+            if (!activeTextarea) return;
+
+            const btn = document.getElementById('add-inline-image-btn');
+            const statusDiv = document.getElementById('inline-upload-status');
+            const imageFile = document.getElementById('inline-image-upload').files[0];
+            let imageUrl = document.getElementById('inline-image-url').value;
+
+            if (!imageFile && !imageUrl) {
+                alert('يرجى رفع ملف أو إدخال رابط صورة.');
+                return;
+            }
+
+            btn.disabled = true;
+            statusDiv.textContent = 'جاري إضافة الصورة...';
+
+            try {
+                if (imageFile) {
+                    const imageRef = ref(storage, `inline-images/${Date.now()}-${imageFile.name}`);
+                    await uploadBytes(imageRef, imageFile);
+                    imageUrl = await getDownloadURL(imageRef);
+                }
+
+                // إنشاء وسم الصورة وإدراجه في مربع النص
+                const imageTag = `<img src="${imageUrl}" alt="صورة مضمنة" style="max-width:100%; display:block; margin:10px auto; border-radius: 8px;">`;
+                activeTextarea.value = activeTextarea.value.replace('#اضافه_صوره', imageTag);
+                
+                closeModal('inline-image-modal');
+
+            } catch (error) {
+                console.error("Error adding inline image:", error);
+                statusDiv.textContent = 'حدث خطأ.';
+                alert('فشل في إضافة الصورة.');
+            } finally {
+                btn.disabled = false;
+                activeTextarea = null; // إعادة تعيين مربع النص النشط
+            }
+        });
+
 
         function openEditModal(articleId, articleData) {
             document.getElementById('edit-article-id').value = articleId;
@@ -691,7 +839,7 @@
                 closeModal('edit-panel-modal');
                 editPostForm.reset();
                 loadArticles();
-                viewArticle(articleId);
+                closeModal('article-view-modal'); // إغلاق نافذة العرض لتحديثها
             } catch (error) {
                 console.error('Error updating document:', error);
                 alert('حدث خطأ أثناء حفظ التعديلات.');
